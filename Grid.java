@@ -1,223 +1,296 @@
 package Main;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.lang.reflect.InvocationTargetException;
+import org.omg.CORBA.PUBLIC_MEMBER;
 
-import javax.swing.*;
+public class Grid {
+    private static final int TILE_SIZE = 2;
+    private int[][] outputGrid;
+    private int[][][] tileSet;
+    private boolean[][][] validDirections;
+    private int gridSize;
+    private Random random;
+   public int startX;
+   public int startY;
 
-public class Grid extends JFrame {
-	private int mazeWidth;
-	private int mazeHeight;
-	private int[][] maze;
+    public Grid(int gridSize) {
+        this.gridSize = gridSize;
+        this.random = new Random();
 
-	private int playerX;
-	private int playerY;
-	private BufferedImage image;
+        // Create the tile set with all possible tile configurations
+        createTileSet();
 
-	private int delay = 100;
+        // Initialize the output grid with -1
+        this.outputGrid = new int[gridSize][gridSize];
+        for (int i = 0; i < gridSize; i++) {
+            Arrays.fill(outputGrid[i], -1);
+        }
 
-	public Grid(int width, int height) {
-		mazeWidth = width;
-		mazeHeight = height;
+        // Initialize the valid directions for each tile
+        this.validDirections = new boolean[tileSet.length][4][4];
+        for (int i = 0; i < tileSet.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                for (int k = 0; k < 4; k++) {
+                    int dx = k - 1;
+                    int dy = j - 1;
+                    validDirections[i][j][k] = isValidDirection(tileSet[i], dx, dy);
+                }
+            }
+        }
+    }
 
-		setTitle("Maze Generator");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setResizable(false);
+    private void createTileSet() {
+        List<int[][]> tileList = new ArrayList<>();
 
-		// Generate the maze
-		maze = generateMaze();
+        // Create all possible tile configurations
+        for (int i = 0; i < 16; i++) {
+            int[][] tile = new int[TILE_SIZE][TILE_SIZE];
+            for (int j = 0; j < TILE_SIZE; j++) {
+                for (int k = 0; k < TILE_SIZE; k++) {
+                    tile[j][k] = (i >> (j * TILE_SIZE + k)) & 1;
+                }
+            }
+            tileList.add(tile);
+        }
 
-		// Set player start position
-		playerX = 1;
-		playerY = 1;
+        // Convert the tile list to an array
+        this.tileSet = tileList.toArray(new int[0][0][0]);
+    }
 
-		// Add keyboard listener for arrow key navigation
-		addKeyListener(new KeyAdapter() {
-			public void keyPressed(KeyEvent e) {
-				movePlayer(e.getKeyCode());
-			}
-		});
-		setFocusable(true);
-	}
+    private boolean isValidDirection(int[][] tile, int dx, int dy) {
+        int x = TILE_SIZE / 2 + dx;
+        int y = TILE_SIZE / 2 + dy;
+        if (x < 0 || x >= TILE_SIZE || y < 0 || y >= TILE_SIZE) {
+            return false;
+        }
+        return tile[TILE_SIZE / 2][TILE_SIZE / 2] == tile[y][x];
+    }
 
-	private int[][] generateMaze() {
-		int[][] maze = new int[mazeHeight][mazeWidth];
+    public int[][] generateMaze() {
+        // Choose a random tile to start with
+         startX = random.nextInt(gridSize - TILE_SIZE + 1);
+         startY = random.nextInt(gridSize - TILE_SIZE + 1);
+        int[][] startTile = tileSet[random.nextInt(tileSet.length)];
+        outputGrid[startX][startY] = random.nextInt(4);
 
-		// Initialize maze with walls
-		for (int i = 0; i < mazeHeight; i++) {
-			for (int j = 0; j < mazeWidth; j++) {
-				maze[i][j] = 1;
-			}
-		}
+        // Apply the WFC algorithm to generate the maze
+        while (true) {
+            // Find the tile with the smallest entropy
+            int[] tileIndices = findLowestEntropyTile();
 
-		// Generate the maze using depth-first search
-		generateMazeDFS(maze, 1, 1);
+            // If no tile has an entropy of 0, choose one randomly
+            if (tileIndices == null) {
+                tileIndices = chooseRandomTile();
+            }
 
-		return maze;
-	}
+            // If all tiles have been exhausted, return the output grid
+            if (tileIndices == null) {
+                return outputGrid;
+            }
 
-	private void delay(int delay) {
-		try {
-			Thread.sleep(delay);
-		} catch (InterruptedException e) {
-		}
-	}
+            int tileIndex = tileIndices[0];
+            int rotation = tileIndices[1];
+            // Choose a random direction for the tile
+            int direction = chooseRandomDirection(tileIndex);
 
-	private void generateMazeDFS(int[][] maze, int x, int y) {
-		maze[y][x] = 0; // Mark current cell as visited
+            // Try to place the tile in the output grid
+            if (!placeTile(tileIndex, rotation, direction)) {
+                // If it can't be placed, remove it from the tile set
+                removeTile(tileIndex, rotation);
+                continue;
+            }
 
-		// Shuffle the neighbors
-		int[] neighbors = { 1, 2, 3, 4 };
-		shuffleArray(neighbors);
+            // If a tile has been successfully placed, update the valid directions of adjacent tiles
+            updateValidDirections(direction, startX, startY);
+        }
+    }
 
-		// Visit each neighbor in a random order
-		for (int i = 0; i < neighbors.length; i++) {
-			switch (neighbors[i]) {
-			case 1: // Up
-				if (y - 2 >= 0 && maze[y - 2][x] != 0) {
-					maze[y - 1][x] = 0; // Remove the wall
-					generateMazeDFS(maze, x, y - 2);
-				}
-				break;
-			case 2: // Right
-				if (x + 2 < mazeWidth && maze[y][x + 2] != 0) {
-					maze[y][x + 1] = 0; // Remove the wall
-					generateMazeDFS(maze, x + 2, y);
-				}
-				break;
-			case 3: // Down
-				if (y + 2 < mazeHeight && maze[y + 2][x] != 0) {
-					maze[y + 1][x] = 0; // Remove the wall
-					generateMazeDFS(maze, x, y + 2);
-				}
-				break;
-			case 4: // Left
-				if (x - 2 >= 0 && maze[y][x - 2] != 0) {
-					maze[y][x - 1] = 0; // Remove the wall
-					generateMazeDFS(maze, x - 2, y);
-				}
-				break;
-			}
-		}
-	}
+    private int[] findLowestEntropyTile() {
+        int[] tileIndices = null;
+        double lowestEntropy = Double.POSITIVE_INFINITY;
 
-	private void shuffleArray(int[] array) {
-		for (int i = array.length - 1; i > 0; i--) {
-			int j = (int) (Math.random() * (i + 1));
-			int temp = array[i];
-			array[i] = array[j];
-			array[j] = temp;
-		}
-	}
+        // Find the tile with the lowest entropy
+        for (int i = 0; i < tileSet.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (!hasValidDirections(i, j)) {
+                    continue;
+                }
 
-	private void movePlayer(int keyCode) {
-		int dx = 0;
-		int dy = 0;
+                double entropy = getTileEntropy(i, j);
+                if (entropy == 0) {
+                    return new int[] {i, j};
+                }
 
-		// Determine movement direction based on arrow key
-		switch (keyCode) {
-		case KeyEvent.VK_UP:
-			dy = -1;
-			break;
-		case KeyEvent.VK_DOWN: 	
-			dy = 1;
-			break;
-		case KeyEvent.VK_LEFT:
-			dx = -1;
-			break;
-		case KeyEvent.VK_RIGHT:
-			dx = 1;
-			break;
-		case KeyEvent.VK_W:
-			dy = -1;
-			break;
-		case KeyEvent.VK_S:
-			dy = 1;
-			break;
-		case KeyEvent.VK_A:
-			dx = -1;
-			break;
-		case KeyEvent.VK_D:
-			dx = 1;
-			break;
-		}
+                if (entropy < lowestEntropy) {
+                    lowestEntropy = entropy;
+                    tileIndices = new int[] {i, j};
+                }
+            }
+        }
 
-		// Calculate new player position
-		int newPlayerX = playerX + dx;
-		int newPlayerY = playerY + dy;
+        return tileIndices;
+    }
 
-		// Check if the new position is within the bounds and not a wall
-		if (newPlayerX >= 0 && newPlayerX < mazeWidth && newPlayerY >= 0 && newPlayerY < mazeHeight
-				&& maze[newPlayerY][newPlayerX] == 0) {
-			// Update player position
-			playerX = newPlayerX;
-			playerY = newPlayerY;
+    private int[] chooseRandomTile() {
+        List<int[]> validTiles = new ArrayList<>();
 
-			repaint(delay);
-			
-			// Check if the player has reached the exit
-			if (playerX == mazeWidth - 2 && playerY == mazeHeight - 2) {
-				JOptionPane.showMessageDialog(this, "Congratulations! You reached the exit.");
-				resetMaze();
-			}
-		}
-	}
+        // Find all tiles with valid directions
+        for (int i = 0; i < tileSet.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (hasValidDirections(i, j)) {
+                    validTiles.add(new int[] {i, j});
+                }
+            }
+        }
 
-	private void resetMaze() {
-		// Generate a new maze
-		maze = generateMaze();
+        // Choose a random tile from the list
+        if (validTiles.isEmpty()) {
+            return null;
+        } else {
+            return validTiles.get(random.nextInt(validTiles.size()));
+        }
+    }
 
-		// Reset player position
-		playerX = 1;
-		playerY = 1;
+    private boolean hasValidDirections(int tileIndex, int rotation) {
+        for (int i = 0; i < 4; i++) {
+            if (validDirections[tileIndex][(i + rotation) % 4][i]) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-		// Redraw the maze
-		
-		
-		repaint(delay);
-	}
-	
-	
+    private double getTileEntropy(int tileIndex, int rotation) {
+        double entropy = 0;
+        for (int i = 0; i < 4; i++) {
+            if (validDirections[tileIndex][(i + rotation) % 4][i]) {
+                entropy++;
+            }
+        }
+        return entropy;
+    }
 
-	public void paint(Graphics g) {
-		super.paint(g);
-	
+    private int chooseRandomDirection(int tileIndex) {
+        int[] validDirections = new int[4];
+        int numValidDirections = 0;
+        for (int i = 0; i < 4; i++) {
+            if (this.validDirections[tileIndex][outputGrid[startX][startY]][i]) {
+                validDirections[numValidDirections++] = i;
+            }
+        }
+        return validDirections[random.nextInt(numValidDirections)];
+    }
 
-		// Clear the screen
-		g.clearRect(0, 0, getWidth(), getHeight());
+    private boolean placeTile(int tileIndex, int rotation, int direction) {
+        int dx = 0;
+        int dy = 0;
 
-		// Set wall color
-		g.setColor(Color.BLACK);
+        switch (direction) {
+            case 0:
+                dy = -TILE_SIZE;
+                break;
+            case 1:
+                dx = TILE_SIZE;
+                break;
+            case 2:
+                dy = TILE_SIZE;
+                break;
+            case 3:
+                dx = -TILE_SIZE;
+                break;
+        }
 
-		// Draw walls
-		for (int i = 0; i < mazeHeight; i++) {
-			for (int j = 0; j < mazeWidth; j++) {
-				if (maze[i][j] == 1) {
-					g.fillRect(j * 20, i * 20, 20, 20);
-				}
-			}
-		}
+        int[][] tile = tileSet[tileIndex];
+        int x = startX + dx;
+        int y = startY + dy;
 
-		// Set player color
-		g.setColor(Color.GREEN);
+        // Check if the tile can be
+        // placed in the output grid without overlapping existing tiles
+        for (int i = 0; i < TILE_SIZE; i++) {
+            for (int j = 0; j < TILE_SIZE; j++) {
+                if (x + j < 0 || x + j >= outputGrid.length || y + i < 0 || y + i >= outputGrid[0].length) {
+                    return false;
+                }
 
-		// Draw player
-		g.fillOval(playerX * 20, playerY * 20, 20, 20);
+                if (tile[i][j] != 0 && outputGrid[x + j][y + i] != 0) {
+                    return false;
+                }
+            }
+        }
 
-		// Set exit color
-		g.setColor(Color.RED);
+        // Place the tile in the output grid
+        for (int i = 0; i < TILE_SIZE; i++) {
+            for (int j = 0; j < TILE_SIZE; j++) {
+                if (tile[i][j] != 0) {
+                    outputGrid[x + j][y + i] = tile[i][j];
+                }
+            }
+        }
 
-		// Draw exit
-		g.fillRect((mazeWidth - 2) * 20, (mazeHeight - 2) * 20, 20, 20);
-	}
+        // Update the starting coordinates for the next tile
+        startX = x;
+        startY = y;
 
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(() -> {
-			Grid mazeGenerator = new Grid(30, 40);
-			mazeGenerator.setSize(mazeGenerator.mazeWidth * 20 + 5, mazeGenerator.mazeHeight * 20 + 5);
-			mazeGenerator.setVisible(true);
-		});
+        return true;
+    }
+
+    private void removeTile(int tileIndex, int rotation) {
+        int dx = 0;
+        int dy = 0;
+
+        switch (outputGrid[startX][startY]) {
+            case 0:
+                dy = -TILE_SIZE;
+                break;
+            case 1:
+                dx = TILE_SIZE;
+                break;
+            case 2:
+                dy = TILE_SIZE;
+                break;
+            case 3:
+                dx = -TILE_SIZE;
+                break;
+        }
+
+        int[][] tile = tileSet[tileIndex];
+        int x = startX + dx;
+        int y = startY + dy;
+
+        // Remove the tile from the output grid
+        for (int i = 0; i < TILE_SIZE; i++) {
+            for (int j = 0; j < TILE_SIZE; j++) {
+                if (tile[i][j] != 0) {
+                    outputGrid[x + j][y + i] = 0;
+                }
+            }
+        }
+    }
+
+    private void updateValidDirections(int direction, int startX, int startY) {
+        if (startX > 0) {
+            validDirections[outputGrid[startX - 1][startY]][1][(direction + 2) % 4] = true;
+        }
+        if (startX + TILE_SIZE < outputGrid.length) {
+            validDirections[outputGrid[startX + TILE_SIZE][startY]][3][(direction + 2) % 4] = true;
+        }
+        if (startY > 0) {
+            validDirections[outputGrid[startX][startY - 1]][2][(direction + 2) % 4] = true;
+        }
+        if (startY + TILE_SIZE < outputGrid[0].length) {
+            validDirections[outputGrid[startX][startY + TILE_SIZE]][0][(direction + 2) % 4] = true;
+        }
+    }
+
+    public int[][] getOutputGrid() {
+        return outputGrid;
+    }
+    
+    public static void main(String[] args) {
+		Grid grid = new Grid(100);
+		grid.
 	}
 }
