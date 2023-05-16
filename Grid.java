@@ -1,6 +1,8 @@
 package Main;
 
 import javax.swing.*;
+import javax.swing.plaf.synth.SynthSeparatorUI;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -112,11 +114,14 @@ public class Grid extends JFrame {
 			//Get where the player is
 			if(playerY > y && playerX == x){
 				System.out.println("Player needs to move to the left");
-				for(int i = playerY; i > 0; i--){
+				for(int i = playerY; i >= 0; i--){
 					System.out.println(i);
 					if(grid[playerX][i] == 1){
+						grid[playerX][playerY] = 0;
+						grid[playerX][i + 1] = 7;
 						buttons[playerX][playerY].setBackground(Color.white);
 						buttons[playerX][i + 1].setBackground(Color.red);
+						playerY = i + 1;
 					}
 				}
 			}else if(playerY < y && playerX == x){
@@ -131,7 +136,30 @@ public class Grid extends JFrame {
 						playerY = i - 1;
 					}
 				}
+			}else if(playerX > x && playerY == y){
+				System.out.println("Player needs to move Up");
+				for(int i = playerX; i >= 0; i--){
+					if(grid[i][playerY] == 1){
+						grid[playerX][playerY] = 0;
+						grid[i+1][playerY] = 7;
+						buttons[playerX][playerY].setBackground(Color.white);
+						buttons[i + 1][playerY].setBackground(Color.red);
+						playerX = i + 1;
+					}
+				}
+			}else if(playerX < x && playerY == y){
+				System.out.println("Player needs to move down");
+				for(int i = playerX; i < GRID_SIZE; i++){
+					if(grid[i][playerY] == 1){
+						grid[playerX][playerY] = 0;
+						grid[i-1][playerY] = 7;
+						buttons[playerX][playerY].setBackground(Color.white);
+						buttons[i - 1][playerY].setBackground(Color.red);
+						playerX = i - 1;
+					}
+				}
 			}
+			
 			
 		}
 
