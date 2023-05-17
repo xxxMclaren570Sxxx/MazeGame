@@ -1,4 +1,4 @@
-package MazeGame;
+package Main;
 
 import javax.swing.*;
 
@@ -11,8 +11,12 @@ import java.io.IOException;
 
 import java.util.Random;
 
-public class MazeGame extends JFrame {
-	private static final int GRID_SIZE = 20;
+public class Grid extends JFrame {
+	private  static final int easy = 10;
+	private static final int normal = 20;
+	private static final int hard = 30;
+	
+	private static final int GRID_SIZE = normal;
 	public int[][] grid = new int[GRID_SIZE][GRID_SIZE];
 	public JButton[][] buttons = new JButton[GRID_SIZE][GRID_SIZE];
 	int playerX;
@@ -23,15 +27,15 @@ public class MazeGame extends JFrame {
 
     int points = 0;
 
-    Icon Wall = new ImageIcon("C:\\Users\\junkm\\Coding\\MazeGame\\res\\Wall.png");
-    Icon Player = new ImageIcon("C:\\Users\\junkm\\Coding\\MazeGame\\res\\Player.png");
-    Icon PathPoint = new ImageIcon("C:\\Users\\junkm\\Coding\\MazeGame\\res\\PathPoint.png");
-    Icon Path = new ImageIcon("C:\\Users\\junkm\\Coding\\MazeGame\\res\\Path.png");
-    Icon Goal = new ImageIcon("C:\\Users\\junkm\\Coding\\MazeGame\\res\\EndPoint.png");
+    Icon Wall = new ImageIcon("C:\\Users\\westo\\Downloads\\Wall.png");
+    Icon Player = new ImageIcon("C:\\Users\\westo\\Downloads\\Player.png");
+    Icon PathPoint = new ImageIcon("C:\\Users\\westo\\Downloads\\PathPoint.png");
+    Icon Path = new ImageIcon("C:\\Users\\westo\\Downloads\\Path.png");
+    Icon Goal = new ImageIcon("C:\\Users\\westo\\Downloads\\EndPoint.png");
 
 	Random rnd = new Random();
 
-	public MazeGame() {
+	public Grid() {
 		setTitle("MINORS MINE");
 		setSize(600, 600);
 		setResizable(false);
@@ -59,7 +63,7 @@ public class MazeGame extends JFrame {
 
 	public void DrawMaze() {
 		// Read everything from a file
-        String filePath = "C:\\Users\\junkm\\Coding\\MazeGame\\MazeLayout.dat"; // Replace "file.txt" with the actual file path
+        String filePath = "C:\\Users\\westo\\Downloads\\MazeLayout.dat"; // Replace "file.txt" with the actual file path
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             int x = 0;
@@ -192,6 +196,8 @@ public class MazeGame extends JFrame {
                 System.out.println("You won!");
             }
 			
+			System.out.print(goalX + " " + goalY);
+			
 			
 		}
 
@@ -199,7 +205,7 @@ public class MazeGame extends JFrame {
 
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
-			MazeGame example = new MazeGame();
+			Grid example = new Grid();
 			example.setVisible(true);
 		});
 	}
