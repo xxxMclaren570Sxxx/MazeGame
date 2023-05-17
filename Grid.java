@@ -5,208 +5,65 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 
-import java.util.Random;
+public class MainMenu {
+	JFrame frame;
+	boolean hasWon = false;
+	ImageIcon icon = new ImageIcon(ClassLoader.getSystemResource("res\\MainMenuBG.png"));
+	Image img = icon.getImage();
+	public MainMenu(boolean DoSomt){
+		
+	}
+	public MainMenu() {
+		// Makes a main menu for the game
+		frame = new JFrame("Game Main Menu");
+		frame.setSize(500, 500);
+		frame.setResizable(false);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setLayout(new BorderLayout());
+		frame.setLocationRelativeTo(null);
+		frame.setIconImage(img);
 
-public class Grid extends JFrame {
-	private  static final int easy = 10;
-	private static final int normal = 20;
-	private static final int hard = 30;
-	
-	private static final int GRID_SIZE = normal;
-	public int[][] grid = new int[GRID_SIZE][GRID_SIZE];
-	public JButton[][] buttons = new JButton[GRID_SIZE][GRID_SIZE];
-	int playerX;
-	int playerY;
+		JLabel titleLabel = new JLabel("Game Name");
+		titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+		titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		frame.add(titleLabel, BorderLayout.NORTH);
 
-    int goalX;
-    int goalY;
+		JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 10, 10));
 
-    int points = 0;
-
-    Icon Wall = new ImageIcon("C:\\Users\\westo\\Downloads\\Wall.png");
-    Icon Player = new ImageIcon("C:\\Users\\westo\\Downloads\\Player.png");
-    Icon PathPoint = new ImageIcon("C:\\Users\\westo\\Downloads\\PathPoint.png");
-    Icon Path = new ImageIcon("C:\\Users\\westo\\Downloads\\Path.png");
-    Icon Goal = new ImageIcon("C:\\Users\\westo\\Downloads\\EndPoint.png");
-
-	Random rnd = new Random();
-
-	public Grid() {
-		setTitle("MINORS MINE");
-		setSize(600, 600);
-		setResizable(false);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setLayout(new GridLayout(GRID_SIZE, GRID_SIZE));
-
-		// Create and add buttons to the JFrame
-		for (int i = 0; i < GRID_SIZE; i++) {
-			for (int j = 0; j < GRID_SIZE; j++) {
-
-				grid[i][j] = 0;
-				buttons[i][j] = new JButton();
-				buttons[i][j].setBackground(Color.white);
-				buttons[i][j].addActionListener(new ButtonClickListener(i, j));
-				add(buttons[i][j]);
+		JButton startButton = new JButton("Start Game");
+		startButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// Code to start the game
+				Grid grid = new Grid();
+				grid.setVisible(true);
+				frame.setVisible(false);
+				frame.setLocationRelativeTo(null);
+				//JOptionPane.showMessageDialog(frame, "Starting the game...");
+				
 			}
+		});
+		JButton exitButton = new JButton("Exit");
+		exitButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// Code to exit the game
+				System.exit(0);
+			}
+		});
 
-		}
+		buttonPanel.add(startButton);
+		buttonPanel.add(exitButton);
 
-		setLocationRelativeTo(null);
-		DrawMaze();
+		frame.add(buttonPanel, BorderLayout.CENTER);
+
+		frame.setVisible(true);
 	}
-
-
-
-	public void DrawMaze() {
-		// Read everything from a file
-        String filePath = "C:\\Users\\westo\\Downloads\\MazeLayout.dat"; // Replace "file.txt" with the actual file path
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            int x = 0;
-            while ((line = br.readLine()) != null && x < GRID_SIZE) {
-                for (int y = 0; y < GRID_SIZE && y < line.length(); y++) {
-                    int key = Character.getNumericValue(line.charAt(y));
-                    grid[x][y] = key;
-                    if(key == 1){
-                        buttons[x][y].setIcon(Wall);
-                       // buttons[x][y].setEnabled(false);
-                    }
-                    if(key == 7){
-                        buttons[x][y].setIcon(Player);
-                        playerX = x;
-                        playerY = y;
-                    }
-                    if(key == 8){
-                        buttons[x][y].setIcon(Goal);
-                        goalX = x; 
-                        goalY= y;
-
-                    }
-                    if(key == 0){
-                        //air
-                        buttons[x][y].setIcon(Path);
-                    }
-                    if(key == 6){
-                        //coin
-                        buttons[x][y].setIcon(PathPoint);
-                    }
-                }
-                x++;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-	}
-
-
 	
-	private class ButtonClickListener implements ActionListener {
-		private int x;
-		private int y;
-		
-		
-
-		public ButtonClickListener(int x, int y) {
-			this.x = x;
-			this.y = y;
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			
-			//Get where the player is
-			if(playerY > y && playerX == x){
-				
-				for(int i = playerY; i >= 0; i--){
-					if(grid[playerX][i] == 6){
-                        //Is on a path point
-                        points++;
-                        buttons[playerX][i].setIcon(Path);
-                    
-                    }
-					if(grid[playerX][i] == 1){
-						grid[playerX][playerY] = 0;
-						grid[playerX][i + 1] = 7;
-						buttons[playerX][playerY].setIcon(Path);
-						buttons[playerX][i + 1].setIcon(Player);
-						playerY = i + 1;
-                        break;
-					}
-				}
-			}else if(playerY < y && playerX == x){
-				
-				for(int i = playerY; i < GRID_SIZE; i++){
-					if(grid[playerX][i] == 6){
-                        //Is on a path point
-                        points++;
-                        buttons[playerX][i].setIcon(Path);
-                    
-                    }
-					if(grid[playerX][i] == 1){
-						grid[playerX][playerY] = 0;
-						grid[playerX][i - 1] = 7;
-						buttons[playerX][playerY].setIcon(Path);
-						buttons[playerX][i - 1].setIcon(Player);
-						playerY = i - 1;
-                        break;
-					}
-				}
-			}else if(playerX > x && playerY == y){
-			
-				for(int i = playerX; i >= 0; i--){
-                    if(grid[i][playerY] == 6){
-                        //Is on a path point
-                        points++;
-                        buttons[i][playerY].setIcon(Path);
-                    
-                    }
-					if(grid[i][playerY] == 1){
-						grid[playerX][playerY] = 0;
-						grid[i+1][playerY] = 7;
-						buttons[playerX][playerY].setIcon(Path);
-						buttons[i + 1][playerY].setIcon(Player);
-						playerX = i + 1;
-                        break;
-					}
-				}
-			}else if(playerX < x && playerY == y){
-			
-				for(int i = playerX; i < GRID_SIZE; i++){
-                    if(grid[i][playerY] == 6){
-                        //Is on a path point
-                        points++;
-                        buttons[i][playerY].setIcon(Path);
-                    
-                    }
-					if(grid[i][playerY] == 1){
-						grid[playerX][playerY] = 0;
-						grid[i-1][playerY] = 7;
-						buttons[playerX][playerY].setIcon(Path);
-						buttons[i - 1][playerY].setIcon(Player);
-						playerX = i - 1;
-                        break;
-					}
-				}
-			}else if(playerX == goalX && playerY == goalY){
-                System.out.println("You won!");
-            }
-			
-			System.out.print(goalX + " " + goalY);
-			
-			
-		}
-
-	}
-
+	
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
-			Grid example = new Grid();
-			example.setVisible(true);
+			MainMenu mainMenu = new MainMenu();
+			
 		});
 	}
 }
